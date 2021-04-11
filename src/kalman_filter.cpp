@@ -42,7 +42,7 @@ void KalmanFilter::Update(const VectorXd &z) {
   
   VectorXd y = z - H_ * x_;
   
-  // some precalculations for the next two equations
+  // a set of calculations needed for the next two equations
   MatrixXd Ht = H_.transpose();
   MatrixXd PHt = P_ * Ht;
 
@@ -52,7 +52,7 @@ void KalmanFilter::Update(const VectorXd &z) {
   // new state
   x_ = x_ + K * y;
   
-  // identity matrix for calculating P (lidar case)
+  // identity matrix for calculating P
   MatrixXd I = MatrixXd::Identity(4, 4);
   
   // new state covariance matrix
@@ -60,20 +60,15 @@ void KalmanFilter::Update(const VectorXd &z) {
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
+  
   float px = x_(0);
   float py = x_(1);
   float vx = x_(2);
   float vy = x_(3);
   
-  //Convert the predictions into polar coordinates
+  // convert the predictions into polar coordinates
   float rho_p = sqrt(px*px + py*py);
   float theta_p = atan2(py,px);
-
-  if (rho_p < 0.0001) {
-    cout << "Small prediction value - reassigning Rho_p to 0.0005 to avoid division by zero";
-    rho_p = 0.0001;
-  }
-    
   float rho_dot_p = (px*vx + py*vy)/rho_p;
 
   VectorXd z_pred = VectorXd(3);
@@ -81,7 +76,7 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
 
   VectorXd y = z - z_pred;
   
-  //Adjust the value of theta if it is outside of [-PI, PI]
+  // normalize the angle
   while (y(1) > M_PI) {
     y(1) -= 2*M_PI;
   }
@@ -89,7 +84,7 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
     y(1) += 2*M_PI;
   }
   
-  // some precalculations for the next two equations
+  // a set of calculations needed for the next two equations
   MatrixXd Ht = H_.transpose();
   MatrixXd PHt = P_ * Ht;
 
@@ -99,7 +94,7 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   // new state
   x_ = x_ + K * y;
   
-  // identity matrix for calculating P (lidar case)
+  // identity matrix for calculating P
   MatrixXd I = MatrixXd::Identity(4, 4);
   
   // new state covariance matrix
