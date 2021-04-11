@@ -1,7 +1,13 @@
 #include "kalman_filter.h"
+#include "math.h"
+
+#include <iostream>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+
+using std::cout;
+using std::endl;
 
 /* 
  * Please note that the Eigen library does not initialize 
@@ -23,19 +29,79 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
 }
 
 void KalmanFilter::Predict() {
-  /**
-   * TODO: predict the state
-   */
+  cout << "KalmanFilter::Predict start" << endl;
+  // state
+  x_ = F_ * x_;
+  
+  // state covariance matrix
+  P_ = F_ * P_ * F_.transpose() + Q_;
+  cout << "KalmanFilter::Predict end" << endl;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
-  /**
-   * TODO: update the state by using Kalman Filter equations
-   */
+  
+  VectorXd y = z - H_ * x_;
+  
+  // some precalculations for the next two equations
+  MatrixXd Ht = H_.transpose();
+  MatrixXd PHt = P_ * Ht;
+
+  MatrixXd S = H_ * PHt + R_;
+  MatrixXd K = PHt * S.inverse();
+
+  // new state
+  x_ = x_ + K * y;
+  
+  // identity matrix for calculating P (lidar case)
+  MatrixXd I = MatrixXd::Identity(4, 4);
+  
+  // new state covariance matrix
+  P_ = (I - K * H_) * P_;
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
-  /**
-   * TODO: update the state by using Extended Kalman Filter equations
-   */
+  float px = x_(0);
+  float py = x_(1);
+  float vx = x_(2);
+  float vy = x_(3);
+  
+  //Convert the predictions into polar coordinates
+  float rho_p = sqrt(px*px + py*py);
+  float theta_p = atan2(py,px);
+
+  if (rho_p < 0.0001) {
+    cout << "Small prediction value - reassigning Rho_p to 0.0005 to avoid division by zero";
+    rho_p = 0.0001;
+  }
+    
+  float rho_dot_p = (px*vx + py*vy)/rho_p;
+
+  VectorXd z_pred = VectorXd(3);
+  z_pred << rho_p, theta_p, rho_dot_p;
+
+  VectorXd y = z - z_pred;
+  
+  //Adjust the value of theta if it is outside of [-PI, PI]
+  while (y(1) > M_PI) {
+    y(1) -= 2*M_PI;
+  }
+  while (y(1) < -M_PI) {
+    y(1) += 2*M_PI;
+  }
+  
+  // some precalculations for the next two equations
+  MatrixXd Ht = H_.transpose();
+  MatrixXd PHt = P_ * Ht;
+
+  MatrixXd S = H_ * PHt + R_;
+  MatrixXd K = PHt * S.inverse();
+
+  // new state
+  x_ = x_ + K * y;
+  
+  // identity matrix for calculating P (lidar case)
+  MatrixXd I = MatrixXd::Identity(4, 4);
+  
+  // new state covariance matrix
+  P_ = (I - K * H_) * P_;
 }
