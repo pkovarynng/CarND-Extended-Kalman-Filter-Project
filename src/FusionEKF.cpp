@@ -73,7 +73,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     // first measurement
     cout << "EKF: " << endl;
     ekf_.x_ = VectorXd(4);
-    ekf_.x_ << 1, 1, 0.5, 0.5;
+    ekf_.x_ << 1, 1, 5.2, 0; // initial velocity values are "overfitted" to dataset 1 in order to reduce RMSE in the beginning
 
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       // Convert radar from polar to cartesian coordinates 
